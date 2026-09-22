@@ -1,0 +1,10 @@
+district,skill,annual_capacity,estimated_demand
+Pune,IoT,300,520
+Pune,Predictive Maintenance,180,410
+Pune,PLC,260,380
+Pune,Machine Learning,420,460
+Nashik,IoT,160,300
+Nashik,PLC,220,280
+Aurangabad,IoT,140,290
+Aurangabad,PLC,190,360
+Nagpur,Data Analytics,360,410

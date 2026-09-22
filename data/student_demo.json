@@ -1,0 +1,10 @@
+{
+  "name": "Demo Student",
+  "district": "Pune",
+  "target_role": "Predictive Maintenance Engineer",
+  "skills": [
+    "Python",
+    "SQL",
+    "Basic Manufacturing"
+  ]
+}

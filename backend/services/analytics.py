@@ -1,8 +1,6 @@
 from pathlib import Path
 import pandas as pd
 
-from backend.services.job_service import skill_demand
-
 BASE = Path(__file__).resolve().parents[2]
 DATA = BASE / "data"
 

@@ -2,7 +2,11 @@ from __future__ import annotations
 
 import pandas as pd
 
-from .job_service import split_skills, skill_demand
+from apps.api.app.services.job_service import split_skills, JobService
+
+
+def skill_demand(jobs: pd.DataFrame) -> pd.DataFrame:
+    return JobService.__new__(JobService).skill_demand(jobs)
 
 
 def get_relevant_jobs_for_course(course_skills: list[str], jobs: pd.DataFrame) -> pd.DataFrame:

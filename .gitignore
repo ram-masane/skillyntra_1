@@ -51,3 +51,5 @@ Thumbs.db
 .streamlit/
 apps/web/.next/
 apps/web/node_modules/
+
+.kilo/skills/

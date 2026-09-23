@@ -11,15 +11,16 @@ export default function CareerCopilotView() {
   const [roles, setRoles] = useState<string[]>([]);
   const [role, setRole] = useState("");
   const [summary, setSummary] = useState<Summary | null>(null);
-  const [known, setKnown] = useState<string[]>([]);
+  const [selectedSkillsByCareer, setSelectedSkillsByCareer] = useState<Record<string, string[]>>({});
+  const known = selectedSkillsByCareer[role] ?? [];
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => { fetch(`${API}/api/careers/roles`).then((response) => response.json()).then((items: string[]) => { setRoles(items); setRole(items[0] ?? ""); }).catch(() => setError("Career paths could not be loaded.")); }, []);
-  useEffect(() => { if (!role) return; fetch(`${API}/api/careers/${encodeURIComponent(role)}`).then((response) => response.json()).then((data) => { setSummary(data); setKnown([]); }).catch(() => setError("Career intelligence could not be loaded.")); }, [role]);
+  useEffect(() => { if (!role) return; fetch(`${API}/api/careers/${encodeURIComponent(role)}`).then((response) => response.json()).then((data) => { setSummary(data); setSelectedSkillsByCareer(prev => { const saved = prev[role] ?? []; if (saved.length === 0) return prev; const filtered = saved.filter((skill) => data.required_skills.includes(skill)); if (filtered.length === saved.length) return prev; return { ...prev, [role]: filtered }; }); }).catch(() => setError("Career intelligence could not be loaded.")); }, [role]);
 
   function analyze() { if (!role) return; setLoading(true); const params = new URLSearchParams(known.map((skill) => ["known_skills", skill])); fetch(`${API}/api/careers/${encodeURIComponent(role)}/gap?${params}`).then((response) => response.json()).then(setSummary).catch(() => setError("Skill gap could not be calculated.")).finally(() => setLoading(false)); }
-  function toggle(skill: string) { setKnown((current) => current.includes(skill) ? current.filter((item) => item !== skill) : [...current, skill]); }
+  function toggle(skill: string) { setSelectedSkillsByCareer((current) => { const existing = current[role] ?? []; const next = existing.includes(skill) ? existing.filter((item) => item !== skill) : [...existing, skill]; return { ...current, [role]: next }; }); }
 
   return <section className="career-view">
     <div className="career-controls"><label>Target career<select value={role} onChange={(event) => setRole(event.target.value)}>{roles.map((item) => <option key={item}>{item}</option>)}</select></label></div>

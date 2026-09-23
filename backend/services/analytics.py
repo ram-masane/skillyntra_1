@@ -32,29 +32,34 @@ def evidence_scores(demand, employer):
     
     All inputs are normalized to 0-100 scale before weighting:
     - job_signals: min-max normalized to 0-100
-    - employer_validation: already 0-100
-    - confidence: High=100, Medium=60, Low=35 (mapped to 0-100 scale)
+    - employer_validation: coerced to numeric, missing filled with 50, clipped to 0-100
+    - confidence: High=100, Medium=60, Low=35 (mapped to 0-100 scale), unknown filled with 60
     
     Weights: job_signals 45%, employer_validation 35%, confidence 20%
     """
     m = demand.merge(employer, on="skill", how="left")
-    m["employer_validation"] = m["employer_validation"].fillna(50)
-    
+
+    if m.empty:
+        m["evidence_score"] = pd.Series(dtype=float, index=m.index)
+        return m
+
+    m["employer_validation"] = pd.to_numeric(m["employer_validation"], errors="coerce").fillna(50).clip(0, 100)
+
     # Normalize job_signals to 0-100 using min-max scaling
     job_signals = m["job_signals"]
     if job_signals.max() > job_signals.min():
         job_signals_norm = (job_signals - job_signals.min()) / (job_signals.max() - job_signals.min()) * 100
     else:
         job_signals_norm = pd.Series(50, index=job_signals.index)  # Default to middle if all same
-    
+
     confidence_map = {"High": 100, "Medium": 60, "Low": 35}
     confidence_norm = m["confidence"].map(confidence_map).fillna(60)
-    
+
     m["evidence_score"] = (
         job_signals_norm * 0.45
         + m["employer_validation"] * 0.35
         + confidence_norm * 0.20
-    ).round(1)
+    ).clip(0, 100).round(1)
     return m.sort_values("evidence_score", ascending=False)
 
 def skill_gap(required, current):

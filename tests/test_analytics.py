@@ -5,7 +5,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pandas as pd
 
-from backend.services.analytics import skill_gap
+from backend.services.analytics import skill_gap, evidence_scores
 from backend.services.course_service import calculate_course_alignment, calculate_course_health
 
 
@@ -110,3 +110,106 @@ def test_course_health_at_risk():
     result = calculate_course_health(course, jobs)
     assert result["alignment"] == 0
     assert result["status"] == "At Risk"
+
+
+def _ev_demand(skills, signals, confidences):
+    return pd.DataFrame({"skill": skills, "job_signals": signals, "confidence": confidences})
+
+
+def _ev_employer(skills, vals):
+    return pd.DataFrame({"skill": skills, "employer_validation": vals})
+
+
+def test_evidence_scores_normal():
+    demand = _ev_demand(["Python", "Java"], [100, 50], ["High", "Medium"])
+    employer = _ev_employer(["Python", "Java"], [80, 60])
+    result = evidence_scores(demand, employer)
+    assert result.iloc[0]["skill"] == "Python"
+    assert result.iloc[0]["evidence_score"] == 93.0
+    assert result.iloc[1]["skill"] == "Java"
+    assert result.iloc[1]["evidence_score"] == 33.0
+
+
+def test_evidence_scores_empty_demand():
+    demand = _ev_demand([], [], [])
+    employer = _ev_employer(["Python"], [80])
+    result = evidence_scores(demand, employer)
+    assert len(result) == 0
+    assert "evidence_score" in result.columns
+
+
+def test_evidence_scores_identical_job_signals():
+    demand = _ev_demand(["Python", "Java"], [50, 50], ["High", "Medium"])
+    employer = _ev_employer(["Python", "Java"], [80, 60])
+    result = evidence_scores(demand, employer)
+    assert result.iloc[0]["skill"] == "Python"
+    assert result.iloc[0]["evidence_score"] == 70.5
+    assert result.iloc[1]["skill"] == "Java"
+    assert result.iloc[1]["evidence_score"] == 55.5
+
+
+def test_evidence_scores_missing_employer_validation():
+    demand = _ev_demand(["Python"], [100], ["High"])
+    employer = _ev_employer(["Python"], [None])
+    result = evidence_scores(demand, employer)
+    # single row -> job_signals_norm=50; None -> 50
+    # 50*0.45 + 50*0.35 + 100*0.20 = 60.0
+    assert result.iloc[0]["evidence_score"] == 60.0
+
+
+def test_evidence_scores_employer_below_zero():
+    demand = _ev_demand(["Python"], [100], ["High"])
+    employer = _ev_employer(["Python"], [-20])
+    result = evidence_scores(demand, employer)
+    # single row -> job_signals_norm=50; -20 clipped to 0
+    # 50*0.45 + 0*0.35 + 100*0.20 = 42.5
+    assert result.iloc[0]["evidence_score"] == 42.5
+
+
+def test_evidence_scores_employer_above_100():
+    demand = _ev_demand(["Python"], [100], ["High"])
+    employer = _ev_employer(["Python"], [150])
+    result = evidence_scores(demand, employer)
+    # single row -> job_signals_norm=50; 150 clipped to 100
+    # 50*0.45 + 100*0.35 + 100*0.20 = 77.5
+    assert result.iloc[0]["evidence_score"] == 77.5
+
+
+def test_evidence_scores_high_confidence():
+    demand = _ev_demand(["Python"], [100], ["High"])
+    employer = _ev_employer(["Python"], [50])
+    result = evidence_scores(demand, employer)
+    # 50*0.45 + 50*0.35 + 100*0.20 = 60.0
+    assert result.iloc[0]["evidence_score"] == 60.0
+
+
+def test_evidence_scores_medium_confidence():
+    demand = _ev_demand(["Python"], [100], ["Medium"])
+    employer = _ev_employer(["Python"], [50])
+    result = evidence_scores(demand, employer)
+    # 50*0.45 + 50*0.35 + 60*0.20 = 52.0
+    assert result.iloc[0]["evidence_score"] == 52.0
+
+
+def test_evidence_scores_low_confidence():
+    demand = _ev_demand(["Python"], [100], ["Low"])
+    employer = _ev_employer(["Python"], [50])
+    result = evidence_scores(demand, employer)
+    # 50*0.45 + 50*0.35 + 35*0.20 = 47.0
+    assert result.iloc[0]["evidence_score"] == 47.0
+
+
+def test_evidence_scores_unknown_confidence():
+    demand = _ev_demand(["Python"], [100], ["Unknown"])
+    employer = _ev_employer(["Python"], [50])
+    result = evidence_scores(demand, employer)
+    # unknown -> 60; 50*0.45 + 50*0.35 + 60*0.20 = 52.0
+    assert result.iloc[0]["evidence_score"] == 52.0
+
+
+def test_evidence_scores_bounded_0_to_100():
+    demand = _ev_demand(["Python", "Java"], [100, 100], ["High", "Low"])
+    employer = _ev_employer(["Python", "Java"], [1000, -50])
+    result = evidence_scores(demand, employer)
+    assert (result["evidence_score"] <= 100).all()
+    assert (result["evidence_score"] >= 0).all()

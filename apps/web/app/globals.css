@@ -178,6 +178,20 @@ button, select { font: inherit; }
 .preview-card strong { font: 600 20px 'Space Grotesk', sans-serif; }
 .preview-card span { color: var(--violet); font-size: 12px; margin-top: 5px; }
 .success-box { background: #e9f7d8; color: #39723d; border: 1px solid #badd83; border-radius: 10px; padding: 12px; font-size: 12px; margin-top: 14px; }
+.proposal-box { background: var(--white); border: 1px solid var(--line); border-radius: 16px; padding: 20px; margin-top: 14px; }
+.proposal-box h3 { font: 700 16px 'Space Grotesk', sans-serif; margin: 0 0 12px; color: var(--violet); }
+.proposal-box p { color: var(--muted); font-size: 13px; margin: 0 0 16px; }
+.proposal-box strong { color: var(--ink); }
+.proposal-section { margin-top: 20px; }
+.proposal-section h4 { font: 600 14px 'Space Grotesk', sans-serif; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin: 0 0 10px; }
+.proposal-section ul, .proposal-section ol { margin: 0; padding-left: 20px; }
+.proposal-section li { color: var(--ink); font-size: 13px; line-height: 1.6; margin: 8px 0; }
+.proposal-section .signals { color: var(--muted); font-size: 11px; font-weight: 400; }
+.proposal-detail { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+.proposal-detail span { font-size: 12px; color: var(--muted); }
+.proposal-detail span:first-child { color: var(--violet); font-weight: 600; }
+.retry-btn { margin-left: 12px; padding: 6px 12px; border: 1px solid var(--line); background: var(--white); border-radius: 8px; color: var(--ink); cursor: pointer; font-size: 12px; font-weight: 600; }
+.retry-btn:hover { background: var(--paper); border-color: var(--violet); color: var(--violet); }
 .workspace-view { margin-top: 28px; }
 .section-banner { display: flex; align-items: center; gap: 10px; background: #edf4ff; color: #385887; border: 1px solid #c9dcfb; border-radius: 13px; padding: 13px 15px; font-size: 13px; margin-bottom: 15px; }
 .validation-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }

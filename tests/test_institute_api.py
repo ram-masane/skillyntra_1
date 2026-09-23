@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "apps" / "api"))
 
 import pandas as pd
 
-from app.routes.institute import alignment
+from app.routes.institute import _build_curriculum_proposal, alignment
 from backend.services.course_service import calculate_course_health
 
 
@@ -104,3 +104,56 @@ def test_institute_alignment_another_course():
     assert "health_status" in result
     assert "placement_rate" in result
     assert "employer_validation" in result
+
+
+def test_curriculum_proposal_contains_missing_skills():
+    result = alignment("Data Analytics")
+    proposal = result["curriculum_proposal"]
+
+    assert {item["skill"] for item in proposal["add_or_strengthen"]} == set(result["missing"])
+    assert proposal["has_proposal"] is True
+
+
+def test_curriculum_proposal_orders_missing_skills_by_job_signals():
+    proposal = alignment("Data Analytics")["curriculum_proposal"]
+    signals = [item["job_signals"] for item in proposal["add_or_strengthen"]]
+
+    assert signals == sorted(signals, reverse=True)
+
+
+def test_curriculum_proposal_priorities_are_sequential():
+    proposal = alignment("Data Analytics")["curriculum_proposal"]
+    priorities = [item["priority"] for item in proposal["add_or_strengthen"]]
+
+    assert priorities == list(range(1, len(proposal["add_or_strengthen"]) + 1))
+
+
+def test_curriculum_proposal_recommendations_include_skill_and_job_signals():
+    proposal = alignment("Data Analytics")["curriculum_proposal"]
+
+    for item in proposal["add_or_strengthen"]:
+        expected = (
+            f"Add or strengthen {item['skill']} coverage because it is demanded by "
+            f"{item['job_signals']} relevant job signals."
+        )
+        assert item["recommendation"] == expected
+
+
+def test_curriculum_proposal_keeps_covered_skills():
+    result = alignment("Data Analytics")
+    proposal = result["curriculum_proposal"]
+
+    assert {item["skill"] for item in proposal["keep"]} == set(result["covered"])
+
+
+def test_curriculum_proposal_without_missing_skills():
+    result = alignment("Data Analytics")
+    proposal = _build_curriculum_proposal({
+        "course": result["course"],
+        "skill_demand": result["curriculum_proposal"]["keep"],
+        "missing": [],
+        "covered": result["covered"],
+    })
+
+    assert proposal["has_proposal"] is False
+    assert proposal["message"] == "Course currently covers all identified industry-required skills."

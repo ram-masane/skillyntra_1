@@ -40,21 +40,43 @@ def calculate_course_alignment(course_skills: list[str], jobs: pd.DataFrame) -> 
     3. Compare course skills to demanded skills
     4. Alignment = covered_demand_signals / total_demand_signals * 100
     
-    Returns dict with: alignment (0-100), covered_skills, missing_skills, relevant_job_count
+    Returns dict with: alignment (0-100), covered_skills, missing_skills, relevant_job_count,
+    and per-skill demand metadata for curriculum proposals.
     """
     taught = course_skills
     if not taught:
-        return {"alignment": 0, "covered": [], "missing": [], "relevant_jobs": 0, "required_skills": []}
+        return {
+            "alignment": 0,
+            "covered": [],
+            "missing": [],
+            "relevant_jobs": 0,
+            "required_skills": [],
+            "skill_demand": []
+        }
     
     # Get jobs relevant to this course
     relevant_jobs = get_relevant_jobs_for_course(taught, jobs)
     if relevant_jobs.empty:
-        return {"alignment": 0, "covered": [], "missing": [], "relevant_jobs": 0, "required_skills": []}
+        return {
+            "alignment": 0,
+            "covered": [],
+            "missing": [],
+            "relevant_jobs": 0,
+            "required_skills": [],
+            "skill_demand": []
+        }
     
     # Calculate skill demand from relevant jobs only
     demand = skill_demand(relevant_jobs)
     if demand.empty:
-        return {"alignment": 0, "covered": [], "missing": [], "relevant_jobs": len(relevant_jobs), "required_skills": []}
+        return {
+            "alignment": 0,
+            "covered": [],
+            "missing": [],
+            "relevant_jobs": len(relevant_jobs),
+            "required_skills": [],
+            "skill_demand": []
+        }
     
     # Compare course skills to demanded skills
     taught_norm = {skill.lower() for skill in taught}
@@ -69,12 +91,19 @@ def calculate_course_alignment(course_skills: list[str], jobs: pd.DataFrame) -> 
     total_signals = max(1, int(demand["job_signals"].sum()))
     alignment = round(covered_signals / total_signals * 100)
     
+    # Per-skill demand metadata for curriculum proposals
+    skill_demand_list = [
+        {"skill": row["skill"], "job_signals": int(row["job_signals"])}
+        for _, row in demand.iterrows()
+    ]
+
     return {
         "alignment": min(100, alignment),
         "covered": covered,
         "missing": missing,
         "relevant_jobs": len(relevant_jobs),
-        "required_skills": required_skills
+        "required_skills": required_skills,
+        "skill_demand": skill_demand_list
     }
 
 

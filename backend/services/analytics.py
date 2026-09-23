@@ -65,28 +65,10 @@ def skill_gap(required, current):
     readiness = round(100 * len(matched) / max(1, len(required)))
     return matched, missing, readiness
 
-def curriculum_alignment(course_skills, demand_skills):
-    cs_norm = {x.strip().lower() for x in course_skills}
-    ds_original = {x.strip(): x.strip().lower() for x in demand_skills}
-    covered = [orig for orig, norm in ds_original.items() if norm in cs_norm]
-    missing = [orig for orig, norm in ds_original.items() if norm not in cs_norm]
-    score = round(100 * len(covered) / max(1, len(ds_original)))
-    return score, sorted(covered), sorted(missing)
-
 def district_gaps(capacity):
     x = capacity.copy()
     x["gap"] = x["estimated_demand"] - x["annual_capacity"]
     x["status"] = x["gap"].apply(lambda v: "SHORTAGE" if v > 0 else ("POTENTIAL OVERSUPPLY" if v < 0 else "BALANCED"))
     return x.sort_values("gap", ascending=False)
 
-def course_health(courses, demand_map):
-    rows = []
-    for _, r in courses.iterrows():
-        skills = r["skills"].split(";")
-        demand_hits = sum(demand_map.get(s, 0) for s in skills)
-        alignment = min(100, round(demand_hits * 12))
-        placement = float(r["placement_rate"])
-        employer = float(r["employer_validation"])
-        health = round(0.45*alignment + 0.30*placement + 0.25*employer)
-        rows.append([r["course"], alignment, placement, employer, health])
-    return pd.DataFrame(rows, columns=["course","alignment","placement","employer_validation","health_score"]).sort_values("health_score", ascending=False)
+

@@ -25,6 +25,7 @@ export default function AppShell({ role, section }: { role: string; section?: st
   const currentRole: Role = role in configs ? role as Role : "student";
   const config = configs[currentRole];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [selectedCourse, setSelectedCourse] = useState("");
   const activeSection = section ?? "";
   const activeView = config.nav.find(([, path]) => path === activeSection);
   const viewTitle = activeView?.[0] ?? config.home;
@@ -42,7 +43,7 @@ export default function AppShell({ role, section }: { role: string; section?: st
     <main className="main">
       <div className="topbar"><button className="mobile-menu" aria-label={menuOpen ? "Close navigation" : "Open navigation"} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button><div className="crumb">Skillyntra / {config.label}</div><div className="status"><i /> System online</div></div>
       <section className="content-header"><div className="eyebrow">{config.label} workspace</div><h1>{viewTitle}</h1><p>{viewDescription}</p></section>
-      {activeSection === "labour-market" ? <LabourMarketView /> : activeSection === "career-copilot" ? <CareerCopilotView /> : currentRole === "company" && activeSection === "courses/new" ? <PartnerConsoleView /> : currentRole === "company" && activeSection === "assessments" ? <PartnerConsoleView assessment /> : activeSection === "courses" ? <CoursesView /> : activeSection === "assessments" ? <AssessmentView /> : currentRole === "institute" && activeSection === "curriculum" ? <InstituteView /> : currentRole === "government" && activeSection === "district-planner" ? <GovernmentView /> : <WorkspaceView role={currentRole} section={activeSection} />}
+      {activeSection === "labour-market" ? <LabourMarketView /> : activeSection === "career-copilot" ? <CareerCopilotView /> : currentRole === "company" && activeSection === "courses/new" ? <PartnerConsoleView /> : currentRole === "company" && activeSection === "assessments" ? <PartnerConsoleView assessment /> : activeSection === "courses" ? <CoursesView /> : activeSection === "assessments" ? <AssessmentView /> : currentRole === "institute" && activeSection === "curriculum" ? <InstituteView onCourseChange={setSelectedCourse} /> : currentRole === "government" && activeSection === "district-planner" ? <GovernmentView /> : <WorkspaceView role={currentRole} section={activeSection} selectedCourse={selectedCourse} />}
     </main>
   </div>;
 }

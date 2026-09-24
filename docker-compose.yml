@@ -3,12 +3,16 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
+    environment:
+      FRONTEND_ORIGIN: http://localhost:3000
     ports:
       - "8000:8000"
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
     ports:

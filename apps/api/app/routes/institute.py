@@ -100,7 +100,7 @@ def alignment(course: str) -> dict:
         }
     row = row.iloc[0]
     taught = split_skills(row.skills)
-    alignment_result = calculate_course_alignment(taught, JOBS)
+    alignment_result = calculate_course_alignment(course, taught, JOBS)
     alignment_result["course"] = course  # Add course name for proposal builder
     health = calculate_course_health(row, JOBS)
     return {

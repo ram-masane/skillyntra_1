@@ -24,7 +24,7 @@ def test_skill_gap():
 
 
 def test_alignment_empty_jobs():
-    result = calculate_course_alignment(["Python"], _jobs([]))
+    result = calculate_course_alignment("", ["Python"], _jobs([]))
     assert result["alignment"] == 0
     assert result["covered"] == []
     assert result["missing"] == []
@@ -33,7 +33,7 @@ def test_alignment_empty_jobs():
 
 def test_alignment_no_matching_skills():
     result = calculate_course_alignment(
-        ["Python"],
+        "", ["Python"],
         _jobs([{"job_id": 1, "skills": "Java;C++"}])
     )
     assert result["alignment"] == 0
@@ -42,7 +42,7 @@ def test_alignment_no_matching_skills():
 
 def test_alignment_partial_coverage():
     result = calculate_course_alignment(
-        ["Python"],
+        "", ["Python"],
         _jobs([
             {"job_id": 1, "skills": "Python;Java"},
             {"job_id": 2, "skills": "Java;C++"},
@@ -55,7 +55,7 @@ def test_alignment_partial_coverage():
 
 def test_alignment_full_coverage():
     result = calculate_course_alignment(
-        ["Python", "Java"],
+        "", ["Python", "Java"],
         _jobs([
             {"job_id": 1, "skills": "Python;Java"},
         ])
@@ -67,7 +67,7 @@ def test_alignment_full_coverage():
 
 def test_alignment_demand_weighted():
     result = calculate_course_alignment(
-        ["Python", "SQL"],
+        "", ["Python", "SQL"],
         _jobs([
             {"job_id": 1, "skills": "Python;SQL;IoT"},
             {"job_id": 2, "skills": "Python;Java"},
@@ -213,3 +213,130 @@ def test_evidence_scores_bounded_0_to_100():
     result = evidence_scores(demand, employer)
     assert (result["evidence_score"] <= 100).all()
     assert (result["evidence_score"] >= 0).all()
+
+
+def _jobs_with_domain(df_data):
+    """Create test jobs DataFrame with job_id, domain, skills columns."""
+    return pd.DataFrame(df_data, columns=["job_id", "domain", "skills"])
+
+
+def test_data_analytics_domain_filters_out_engineering_skills():
+    """Data Analytics should only consider Data & Analytics, Business & Analytics, AI & Data domains."""
+    jobs = _jobs_with_domain([
+        {"job_id": 1, "domain": "Data & Analytics", "skills": "Python;SQL;Excel"},
+        {"job_id": 2, "domain": "Business & Analytics", "skills": "Python;Power BI;Statistics"},
+        {"job_id": 3, "domain": "AI & Data", "skills": "Python;Machine Learning;Pandas"},
+        {"job_id": 4, "domain": "Engineering & Manufacturing", "skills": "PLC;SCADA;Industrial Automation"},
+        {"job_id": 5, "domain": "Engineering & Automation", "skills": "IoT;Sensors;React"},
+    ])
+    result = calculate_course_alignment("Data Analytics", ["Python", "SQL", "Power BI", "Statistics"], jobs)
+    # Should only see skills from the 3 mapped domains
+    required = set(result["required_skills"])
+    assert "Python" in required
+    assert "SQL" in required
+    assert "Excel" in required
+    assert "Power BI" in required
+    assert "Statistics" in required
+    assert "Machine Learning" in required
+    assert "Pandas" in required
+    # Engineering skills should NOT appear
+    assert "PLC" not in required
+    assert "SCADA" not in required
+    assert "Industrial Automation" not in required
+    assert "IoT" not in required
+    assert "Sensors" not in required
+    assert "React" not in required
+    # Relevant jobs should be 3 (the mapped domain jobs)
+    assert result["relevant_jobs"] == 3
+
+
+def test_plc_automation_domain_filters_to_engineering_domains():
+    """PLC Automation should only consider Engineering & Automation, Engineering & Manufacturing."""
+    jobs = _jobs_with_domain([
+        {"job_id": 1, "domain": "Engineering & Automation", "skills": "PLC;IoT;Python"},
+        {"job_id": 2, "domain": "Engineering & Manufacturing", "skills": "PLC;SCADA;Industrial Automation"},
+        {"job_id": 3, "domain": "Data & Analytics", "skills": "Python;SQL;Excel"},
+        {"job_id": 4, "domain": "AI & Data", "skills": "Python;Machine Learning;TensorFlow"},
+    ])
+    result = calculate_course_alignment("PLC Automation", ["PLC", "SCADA", "Industrial Automation"], jobs)
+    required = set(result["required_skills"])
+    assert "PLC" in required
+    assert "SCADA" in required
+    assert "Industrial Automation" in required
+    assert "IoT" in required
+    assert "Python" in required
+    # Data Analytics / AI skills should NOT appear
+    assert "SQL" not in required
+    assert "Excel" not in required
+    assert "Machine Learning" not in required
+    assert "TensorFlow" not in required
+    assert result["relevant_jobs"] == 2
+
+
+def test_predictive_maintenance_domain_includes_engineering_and_ai():
+    """Predictive Maintenance should consider Engineering & Manufacturing, Engineering & Automation, Engineering & AI, AI & Data."""
+    jobs = _jobs_with_domain([
+        {"job_id": 1, "domain": "Engineering & Manufacturing", "skills": "Predictive Maintenance;PLC;Sensors"},
+        {"job_id": 2, "domain": "Engineering & Automation", "skills": "Predictive Maintenance;IoT;SCADA"},
+        {"job_id": 3, "domain": "Engineering & AI", "skills": "Predictive Maintenance;Machine Learning;Computer Vision"},
+        {"job_id": 4, "domain": "AI & Data", "skills": "Predictive Maintenance;Python;Pandas"},
+        {"job_id": 5, "domain": "Data & Analytics", "skills": "Python;SQL;Excel"},  # Not in map
+        {"job_id": 6, "domain": "Cybersecurity", "skills": "Python;SIEM;Incident Response"},  # Not in map
+    ])
+    result = calculate_course_alignment("Predictive Maintenance", ["Predictive Maintenance", "IoT", "Machine Learning", "Python"], jobs)
+    required = set(result["required_skills"])
+    assert "Predictive Maintenance" in required
+    assert "PLC" in required
+    assert "Sensors" in required
+    assert "IoT" in required
+    assert "SCADA" in required
+    assert "Machine Learning" in required
+    assert "Computer Vision" in required
+    assert "Python" in required
+    assert "Pandas" in required
+    # Non-mapped domain skills should NOT appear
+    assert "SQL" not in required
+    assert "Excel" not in required
+    assert "SIEM" not in required
+    assert "Incident Response" not in required
+    assert result["relevant_jobs"] == 4
+
+
+def test_industrial_iot_domain_filters_to_engineering_and_electronics():
+    """Industrial IoT should consider Engineering & Automation, Engineering & Manufacturing, Engineering & AI, Electronics & Embedded."""
+    jobs = _jobs_with_domain([
+        {"job_id": 1, "domain": "Engineering & Automation", "skills": "IoT;PLC;Python"},
+        {"job_id": 2, "domain": "Engineering & Manufacturing", "skills": "IoT;Sensors;SCADA"},
+        {"job_id": 3, "domain": "Engineering & AI", "skills": "IoT;Machine Learning;Computer Vision"},
+        {"job_id": 4, "domain": "Electronics & Embedded", "skills": "IoT;C;Microcontrollers"},
+        {"job_id": 5, "domain": "Data & Analytics", "skills": "Python;SQL;Excel"},  # Not in map
+    ])
+    result = calculate_course_alignment("Industrial IoT", ["IoT", "Python", "Sensors"], jobs)
+    required = set(result["required_skills"])
+    assert "IoT" in required
+    assert "PLC" in required
+    assert "Python" in required
+    assert "Sensors" in required
+    assert "SCADA" in required
+    assert "Machine Learning" in required
+    assert "Computer Vision" in required
+    assert "C" in required
+    assert "Microcontrollers" in required
+    # Non-mapped domain skills should NOT appear
+    assert "SQL" not in required
+    assert "Excel" not in required
+    assert result["relevant_jobs"] == 4
+
+
+def test_unmapped_course_falls_back_to_skill_overlap():
+    """Courses not in COURSE_DOMAIN_MAP should fall back to skill-only matching."""
+    jobs = _jobs_with_domain([
+        {"job_id": 1, "domain": "Any Domain", "skills": "Python;SQL"},
+        {"job_id": 2, "domain": "Another Domain", "skills": "Python;React"},
+    ])
+    result = calculate_course_alignment("Unknown Course", ["Python"], jobs)
+    required = set(result["required_skills"])
+    assert "Python" in required
+    assert "SQL" in required
+    assert "React" in required
+    assert result["relevant_jobs"] == 2

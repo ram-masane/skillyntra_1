@@ -63,6 +63,7 @@ def test_institute_alignment_missing_and_required_consistent():
 def test_institute_alignment_health_score_matches_canonical():
     result = alignment("Data Analytics")
     row = pd.Series({
+        "course": "Data Analytics",
         "skills": "Python;SQL;Power BI;Statistics",
         "placement_rate": 70,
         "employer_validation": 82,
